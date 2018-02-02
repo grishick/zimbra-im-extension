@@ -1,0 +1,79 @@
+<project name="ZimbraIMExtension" default="jar">
+
+    <import file="../../ant-global.xml" />
+
+    <!-- Properties -->
+    <property name="zimbraim.deploy.dir" location="${zimbra.home.dir}/lib/ext/zimbraim" />
+    <property name="jar.file" value="zimbraim.jar" />
+    <property name="webapp.dir" value="/opt/zimbra/jetty/webapps/zimbra"/>
+
+    <path id="all.java.path">
+        <pathelement location="${src.java.dir}" />
+    </path>
+
+    <path id="class.path">
+        <pathelement location="${common.classes.dir}" />
+        <pathelement location="${build.classes.dir}" />
+        <pathelement location="${server.classes.dir}" />
+        <pathelement location="${soap.classes.dir}" />
+        <pathelement location="${client.classes.dir}" />
+        <fileset dir="${jars.dir}">
+            <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${common.jars.dir}">
+            <include name="**/*.jar" />
+        </fileset>
+        <fileset dir="${common.internal.jars.dir}">
+            <include name="**/*.jar" />
+        </fileset>
+    </path>
+
+    <!-- Targets -->
+    <target name="build-init">
+        <mkdir dir="${build.classes.dir}" />
+        <delete dir="${dist.dir}" failonerror="false" />
+        <mkdir dir="${dist.dir}/" />
+        <mkdir dir="${dist.dir}/zimbraim" />
+    </target>
+
+    <target name="compile" depends="build-init" description="Compiles the source code">
+        <ant dir="${common.dir}" target="jar" inheritAll="false" />
+                <ant dir="${client.dir}" target="jar" inheritAll="false" />
+        <javac destdir="${build.classes.dir}" debug="true" classpathref="class.path">
+            <src refid="all.java.path" />
+        </javac>
+    </target>
+
+    <target name="jar" depends="compile" description="Creates the jar file">
+        <antcall target="zimbra-jar">
+            <param name="implementation.title" value="Zimbra IM"/>
+            <param name="zimbra.extension.class" value="com.zimbra.cs.im.ZimbraIMExtension"/>
+        </antcall>
+    </target>
+
+    <target name="clean" description="Removes build files and undeploys extension">
+        <delete dir="${build.dir}" />
+        <delete dir="${dist.dir}" failonerror="false" />
+    </target>
+
+    <target name="deploy-dev" depends="stop-webserver,deploy-jar,start-webserver" description="Deploys the extension"/>
+
+    <target name="deploy-jar" depends="jar" description="Copies the jar file into the extension directory">
+        <copy file="${build.dir}/${jar.file}" tofile="${zimbraim.deploy.dir}/${jar.file}"/>
+        <copy todir="${zimbraim.deploy.dir}">
+            <fileset dir="${jars.dir}" includes="xmpp-*.jar" />
+        </copy>
+    </target>
+    <target name="start-webserver">
+        <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+    </target>
+    <target name="stop-webserver">
+        <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    </target>
+    <target name="dist" description="place output and all required jars into ./dist folder" depends="jar">
+        <copy file="${build.dir}/${jar.file}" tofile="${dist.dir}/zimbraim/${jar.file}"/>
+        <copy todir="${dist.dir}/zimbraim">
+            <fileset dir="${jars.dir}" includes="xmpp-*.jar" />
+        </copy>
+    </target>
+</project>
